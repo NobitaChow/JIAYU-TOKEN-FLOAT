@@ -53,5 +53,22 @@ func selfTests() {
     check(removeInheritedPrefix([t1,t2],[t1]).count == 1,"fork history stripped")
     check(removeInheritedPrefix([t2],[t1]).count == 1,"fresh fork usage preserved")
     check(removeInheritedPrefix([t1,t2],[t1]).reduce(0){$0+$1.usage.total} + t1.usage.total == long.total + u.total,"project aggregate no replay double count")
+    let monitor = Monitor(startMonitoring:false)
+    monitor.prices = ["gpt-6-astra":p]; monitor.fx = 7
+    monitor.now = Date(timeIntervalSince1970:1_800_000_000)
+    func sample(_ offset:Double, _ model:String = "gpt-6-astra") -> Tick {
+        Tick(time:monitor.now.addingTimeInterval(offset),usage:u,model:model,tier:"default",turn:"test")
+    }
+    func snapshot(_ id:String,_ ticks:[Tick]) -> Snapshot {
+        Snapshot(project:id,parent:nil,fork:nil,id:id,path:id,name:id,model:"gpt-6-astra",tier:"default",running:true,loading:false,started:monitor.now.addingTimeInterval(-120),updated:monitor.now,finished:nil,total:Usage(),current:Usage(),ticks:ticks,error:nil)
+    }
+    monitor.sessions = [snapshot("A",[sample(-59),sample(-60),sample(1)]),snapshot("B",[sample(0),sample(-10,"unknown")])]
+    check(monitor.value("全部人民币/分钟") == "≈¥0.11/分", "all-project CNY minute uses both projects, excludes expired and future ticks")
+    check(monitor.costText([sample(0),sample(0,"unknown")]) == "≈$0.01", "mixed-price subtotal has no pending suffix")
+    check(monitor.cnyText([sample(0,"unknown")]) == "—", "unknown-only cost is not shown as zero")
+    monitor.sessions = []
+    check(monitor.value("全部人民币/分钟") == "≈¥0.00/分", "empty minute is zero without active conversation")
+    monitor.fx = 10; monitor.sessions = [snapshot("A",[sample(0)])]
+    check(monitor.value("全部人民币/分钟") == "≈¥0.08/分", "CNY minute follows configured exchange rate")
     print("PASS: \(checks) accounting and incremental-read checks")
 }

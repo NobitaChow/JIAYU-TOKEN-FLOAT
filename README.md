@@ -1,4 +1,4 @@
-# JIAYU Token Float · 用量悬浮窗 0.1.0
+# JIAYU Token Float · 用量悬浮窗 0.1.1
 
 <p align="center"><img src="Assets/logo.png" width="160" alt="JIAYU STUDIO 用量悬浮窗"></p>
 
@@ -8,17 +8,24 @@
 
 ## 下载与安装
 
-- [下载 0.1.0 安装包](https://github.com/NobitaChow/jiayu-token-float/releases/download/v0.1.0/JIAYU.Token.Float.0.1.0.dmg)
-- [中文上手手册 PDF](https://github.com/NobitaChow/jiayu-token-float/releases/download/v0.1.0/JIAYU-Token-Float-0.1.0-Manual-zh-CN.pdf)
+当前源码为 0.1.1，已通过构建、24 项检查及窗口功能验证；新版 DMG 尚未发布。下方正式安装包仍为 0.1.0。
+
+- [已发布的 0.1.0 安装包](https://github.com/NobitaChow/jiayu-token-float/releases/tag/v0.1.0)
+- [0.1.0 中文手册（新版变化见下文）](https://github.com/NobitaChow/jiayu-token-float/releases/download/v0.1.0/JIAYU-Token-Float-0.1.0-Manual-zh-CN.pdf)
 - [全部发布文件与校验值](https://github.com/NobitaChow/jiayu-token-float/releases/tag/v0.1.0)
 
 适用于 **macOS 13 及以上、Apple Silicon（M 系列）**。
 
 1. 打开 DMG，将应用拖入「应用程序」。
-2. 从「应用程序」启动 **JIAYU Token Float 0.1.0**，然后弹出安装磁盘。
+2. 从「应用程序」启动对应版本的 **JIAYU Token Float**，然后弹出安装磁盘。
 3. 更新已有安装时，请先退出正在运行的旧版，再完成替换。
 
 本包采用本地 ad-hoc 签名，尚未获得 Apple 开发者公证。
+
+## 0.1.1 更新
+
+- 去掉金额后的待计价字样，详情仍说明未计入的模型。
+- 新增「全部人民币/分钟」，可选为折叠字段，全部项目详情同步显示。
 
 ## 操作
 
@@ -39,7 +46,7 @@
 - 已有累计计数时，用差分防止重复日志重复计量。分叉仅剔除与其已读取父会话匹配的历史前缀。
 - 速度为最近 60 秒日志记录的输出 tokens / 60，包含推理输出；日志分批到达，无法还原逐 token 的生成速度。
 - 美元/分钟是最近 60 秒已记录的 token 等价费用，不是未来费用预测。
-- Astra 和 GPT-5.6 Sol/Terra/Luna 采用 2026-09-13 核对的标准 API 价格。fast/priority 按 2 倍估算；长上下文按界面规则估算。其他模型可自定义；未知价格显示「已知金额＋待计价」，不会算成零费用。
+- Astra 和 GPT-5.6 Sol/Terra/Luna 采用 2026-09-13 核对的标准 API 价格。fast/priority 按 2 倍估算；长上下文按界面规则估算。其他模型可自定义；金额只显示已配置模型的小计；全部模型价格缺失时显示「—」，详情列出未计入的模型。
 - 人民币默认采用手动参考汇率 7.0，非实时汇率，可在设置更改。
 - 所有金额均为模型 tokens 的 API 等价估算，不是订阅扣费，不含工具等其他费用。
 - 首次扫描可能需要数分钟，读取期间明确标为部分统计。后续使用只保存数值和项目路径的本地缓存加快启动。
@@ -66,9 +73,9 @@
 
 ## 已验证与限制
 
-0.1.0 已通过 19 项计量自测，并检查已安装应用的拖动、展开、三个统计范围、设置持久化和 LOGO。安装包、构建产物及已安装应用的可执行文件一致。
+0.1.1 已通过 24 项计量自测，包括跨项目人民币分钟费用、60 秒时间边界、缺价显示和汇率变更。已检查新版实际窗口的金额显示、全部项目人民币分钟费用和折叠字段选项。系统未授予应用程序目录写权限，新版尚未替换已安装版本。
 
-速度是日志的 60 秒滑动统计，无法还原逐 token 流式生成速度。费用是 API 等价估算；本地日志覆盖范围不等于账户全部用量。此次发布材料修订没有修改应用程序。
+速度是日志的 60 秒滑动统计，无法还原逐 token 流式生成速度。费用是 API 等价估算；本地日志覆盖范围不等于账户全部用量。0.1.1 更新了金额显示及全部项目人民币分钟费用。
 
 ## 开源来源与许可
 

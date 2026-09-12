@@ -3,7 +3,7 @@ import SwiftUI
 
 let appID = "studio.jiayu.tokenfloat"
 let defaultRoot = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".codex/sessions").path
-let fields = ["本轮 tokens", "美元/分钟", "人民币/分钟", "输出均速", "对话 tokens", "本轮美元", "对话美元", "项目 tokens", "项目美元", "全部 tokens", "全部美元", "项目美元/分钟", "全部美元/分钟", "项目人民币", "全部人民币"]
+let fields = ["本轮 tokens", "美元/分钟", "人民币/分钟", "输出均速", "对话 tokens", "本轮美元", "对话美元", "项目 tokens", "项目美元", "全部 tokens", "全部美元", "项目美元/分钟", "全部美元/分钟", "项目人民币", "全部人民币", "全部人民币/分钟"]
 func num(_ n: Double) -> String { n >= 1_000_000_000 ? String(format:"%.2fB",n/1_000_000_000) : n >= 1_000_000 ? String(format:"%.2fM",n/1_000_000) : n >= 1000 ? String(format:"%.1fK",n/1000) : String(format:"%.0f",n) }
 func money(_ n: Double?) -> String { n.map { String(format:"≈$%.2f",$0) } ?? "价格待配置" }
 func uiFont(_ size: CGFloat) -> Font { .custom("FZJunHeiS-M-GB", size:size).weight(.medium) }
@@ -36,13 +36,14 @@ final class Monitor: ObservableObject {
     private var cacheRestored = false
     private var wasLoading = true
     var timer: Timer?
-    init() {
+    init(startMonitoring: Bool = true) {
         // Verified 2026-09-13. Other model prices can be configured explicitly.
         prices = ["gpt-6-astra":Price(input:10,cached:1,output:50,write:12.5,longContext:true),
           "gpt-5.6-sol":Price(input:4,cached:0.4,output:20,write:5,longContext:true),
           "gpt-5.6-terra":Price(input:2,cached:0.2,output:12,write:2.5,longContext:true),
           "gpt-5.6-luna":Price(input:0.2,cached:0.02,output:1.2,write:0.25,longContext:true)]
         if let data = UserDefaults.standard.data(forKey:"prices"), let saved = try? JSONDecoder().decode([String:Price].self,from:data) { prices.merge(saved) { _,new in new } }
+        guard startMonitoring else { return }
         timer = Timer.scheduledTimer(withTimeInterval:1,repeats:true) { [weak self] _ in self?.poll() }; poll()
     }
     var active: Snapshot? {
@@ -129,14 +130,16 @@ final class Monitor: ObservableObject {
     func projectTicks(_ project: String) -> [Tick] { sessions.filter { $0.project == project }.flatMap(ownTicks) }
     var allTicks: [Tick] { sessions.flatMap(ownTicks) }
     var displayTicks: [Tick] { scope == "all" ? allTicks : scope == "project" ? projectTicks(chosenProject) : active?.ticks ?? [] }
+    // Display the priced subtotal; missing model prices remain visible in details.
     func costText(_ ticks: [Tick]) -> String {
-        if let c = cost(ticks) { return money(c) }
         let known = ticks.filter { prices[$0.model] != nil }
-        return money(cost(known)) + "＋待计价"
+        guard ticks.isEmpty || !known.isEmpty else { return "—" }
+        return money(cost(known))
     }
     func cnyText(_ ticks:[Tick]) -> String {
         let known = ticks.filter { prices[$0.model] != nil }
-        return String(format:"≈¥%.2f",(cost(known) ?? 0)*fx) + (known.count < ticks.count ? "＋待计价" : "")
+        guard ticks.isEmpty || !known.isEmpty else { return "—" }
+        return String(format:"≈¥%.2f",(cost(known) ?? 0)*fx)
     }
     func lastMinute(_ ticks:[Tick]) -> [Tick] { ticks.filter { $0.time > now.addingTimeInterval(-60) && $0.time <= now } }
     func currentTicks(_ s: Snapshot) -> [Tick] { s.ticks.filter { $0.time >= s.started } }
@@ -152,6 +155,7 @@ final class Monitor: ObservableObject {
         case "全部美元/分钟": return costText(lastMinute(allTicks))+"/分"
         case "项目人民币": return cnyText(projectTicks(chosenProject))
         case "全部人民币": return cnyText(allTicks)
+        case "全部人民币/分钟": return cnyText(lastMinute(allTicks))+"/分"
         default: break
         }
         guard let s = active else { return "—" }
@@ -254,7 +258,7 @@ struct MainView: View {
                 row("本轮人民币等价",m.cost(m.currentTicks(s)).map { String(format:"≈¥%.2f",$0*m.fx) } ?? "价格待配置")
                 row("近 60 秒费用",money(m.rate(s))+"/分钟")
                 Text("仅统计所选对话，不合并子任务。用量按日志批次更新；费用为模型 token 的 API 等价估算，不含工具费用。人民币采用手动参考汇率 \(m.fx, specifier:"%.4f")。").font(.system(size:10)).foregroundStyle(.secondary).fixedSize(horizontal:false,vertical:true)
-                Text("日志更新：\(s.updated == .distantPast ? "等待数据" : s.updated.formatted(date:.omitted,time:.standard)) · v0.1.0").font(.system(size:10)).foregroundStyle(.secondary)
+                Text("日志更新：\(s.updated == .distantPast ? "等待数据" : s.updated.formatted(date:.omitted,time:.standard)) · v0.1.1").font(.system(size:10)).foregroundStyle(.secondary)
             } else { Text(m.message).foregroundStyle(.secondary) }
         }
     }
@@ -276,11 +280,12 @@ struct MainView: View {
             row("输出 / 其中推理",num(u.output)+" / "+num(u.reasoning))
             let recent = ticks.filter { $0.time > m.now.addingTimeInterval(-60) && $0.time <= m.now }
             row("近 60 秒费用",m.costText(recent)+"/分钟")
+            row(m.scope == "all" ? "全部人民币/分钟" : "项目人民币/分钟",m.cnyText(recent)+"/分")
             row("项目 / 对话数", m.scope == "all" ? "\(m.projects.count) / \(m.sessions.count)" : "1 / \(m.sessions.filter { $0.project == m.chosenProject }.count)")
             if m.sessions.contains(where: { $0.error != nil }) { Text("部分日志无法读取，汇总不完整").foregroundStyle(.orange) }
             if m.loadingCount > 0 { Text("正在读取历史：还有 \(m.loadingCount) 份日志，当前为部分统计").foregroundStyle(.orange) }
             let missing = Array(Set(ticks.filter { m.prices[$0.model] == nil }.map { $0.model })).sorted()
-            if !missing.isEmpty { Text("待配置价格："+missing.joined(separator:"、")).font(.system(size:10)).foregroundStyle(.orange) }
+            if !missing.isEmpty { Text("金额仅含已配置模型，未计入："+missing.joined(separator:"、")).font(.system(size:10)).foregroundStyle(.orange) }
             Text("按完整工作目录分项目，包含已记录用量的子任务；分叉历史前缀去重。仅覆盖本机可读取的日志，不等于账户账单。汇率为手动参考值。").font(.system(size:10)).foregroundStyle(.secondary)
         }
     }
@@ -338,7 +343,7 @@ final class AppDelegate:NSObject,NSApplicationDelegate,NSWindowDelegate {
         NSApp.setActivationPolicy(.accessory)
         monitor = Monitor()
         panel = FloatingPanel(contentRect:NSRect(x:120,y:200,width:370,height:58),styleMask:[.borderless,.nonactivatingPanel],backing:.buffered,defer:false)
-        panel.title = "JIAYU Token Float 0.1.0"; panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = true; panel.hidesOnDeactivate = false
+        panel.title = "JIAYU Token Float 0.1.1"; panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = true; panel.hidesOnDeactivate = false
         panel.level = monitor.top ? .floating : .normal; panel.collectionBehavior = [.canJoinAllSpaces,.fullScreenAuxiliary]; panel.delegate = self
         panel.contentView = NSHostingView(rootView:MainView(m:monitor)); panel.isMovableByWindowBackground = false
         let d = UserDefaults.standard

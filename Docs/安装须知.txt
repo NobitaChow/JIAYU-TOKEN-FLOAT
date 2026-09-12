@@ -1,7 +1,7 @@
-JIAYU STUDIO · 用量悬浮窗 0.1.0
+JIAYU STUDIO · 用量悬浮窗 0.1.1
 
 1. 如果正在运行旧版，请先从菜单栏退出。
-2. 将左侧 JIAYU Token Float 0.1.0 拖入右侧 Applications。
+2. 将左侧 JIAYU Token Float 0.1.1 拖入右侧 Applications。
 3. 从「应用程序」打开应用，随后弹出安装磁盘。
 
 适用于 macOS 13 及以上、Apple Silicon（M 系列）。
