@@ -17,6 +17,7 @@ struct Checkpoint: Codable { var snapshot:Snapshot; var offset:UInt64; var previ
 let cacheFile = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Caches/studio.jiayu.tokenfloat/accounting-v1.json")
 final class Monitor: ObservableObject {
     @Published var sessions: [Snapshot] = []
+    @Published var refreshRevision = 0
     @Published var selected = UserDefaults.standard.string(forKey:"selected") ?? "auto"
     @Published var scope = UserDefaults.standard.string(forKey:"scope") ?? "conversation"
     @Published var projectChoice = UserDefaults.standard.string(forKey:"projectChoice") ?? "auto"
@@ -115,7 +116,7 @@ final class Monitor: ObservableObject {
             }
             wasLoading = stillLoading
             DispatchQueue.main.async {
-                self.sessions = result; self.busy = false
+                self.sessions = result; self.refreshRevision += 1; self.busy = false
                 self.message = result.isEmpty ? "未找到日志，请在设置中选择 sessions 目录" : ""
             }
         }
@@ -222,6 +223,7 @@ struct MainView: View {
              ResizeHandle().frame(width:16,height:16).padding(2).help("拖动调整窗口大小")
          }
 
+         .environment(\.refreshRevision,m.refreshRevision)
          .foregroundStyle(Color.white).preferredColorScheme(.dark).font(uiFont(12))
     }
     var header: some View {
@@ -311,7 +313,7 @@ struct MainView: View {
                 row("本轮人民币等价",m.cost(m.currentTicks(s)).map { String(format:"≈¥%.2f",$0*m.fx) } ?? "价格待配置")
                 row("近 60 秒费用",money(m.rate(s))+"/分钟")
                 Text("仅统计所选对话，不合并子任务。用量按日志批次更新；费用为模型 token 的 API 等价估算，不含工具费用。人民币采用手动参考汇率 \(m.fx, specifier:"%.4f")。").font(.system(size:10)).foregroundStyle(.secondary).fixedSize(horizontal:false,vertical:true)
-                Text("日志更新：\(s.updated == .distantPast ? "等待数据" : s.updated.formatted(date:.omitted,time:.standard)) · v2.0.1").font(.system(size:10)).foregroundStyle(.secondary)
+                Text("日志更新：\(s.updated == .distantPast ? "等待数据" : s.updated.formatted(date:.omitted,time:.standard)) · v2.0.2").font(.system(size:10)).foregroundStyle(.secondary)
             } else { Text(m.message).foregroundStyle(.secondary) }
         }
     }
@@ -413,7 +415,7 @@ final class AppDelegate:NSObject,NSApplicationDelegate,NSWindowDelegate {
         panel.appearance = NSAppearance(named:.darkAqua)
         panel.becomesKeyOnlyIfNeeded = true
         panel.isFloatingPanel = true
-        panel.title = "JIAYU Token Float 2.0.1"; panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = true; panel.hidesOnDeactivate = false
+        panel.title = "JIAYU Token Float 2.0.2"; panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = true; panel.hidesOnDeactivate = false
         panel.level = monitor.top ? .floating : .normal; panel.collectionBehavior = [.canJoinAllSpaces,.fullScreenAuxiliary]; panel.delegate = self
         panel.contentView = FirstClickHostingView(rootView:MainView(m:monitor)); panel.isMovableByWindowBackground = false
         let d = UserDefaults.standard

@@ -7,7 +7,7 @@ for name in ('app', 'manual', 'background', 'output'):
     p.add_argument('--' + name, type=Path, required=True)
 a = p.parse_args()
 root = Path(__file__).resolve().parents[1]
-build_dmg(str(a.output.resolve()), 'JIAYU Token Float 2.0.1', settings={
+build_dmg(str(a.output.resolve()), 'JIAYU Token Float 2.0.2', settings={
     'files': [str(a.app.resolve()), (str(a.manual.resolve()), '使用说明书.pdf'),
               (str(root / 'Docs/安装须知.txt'), '安装须知.txt')],
     'symlinks': {'Applications': '/Applications'},

@@ -1,3 +1,11 @@
+# VALIDATION — 2.0.2
+
+- 52 automated checks passed, including identical snapshots, reduced snapshots, all/project/conversation totals and costs, and replacement of per-refresh increments.
+- A live SwiftUI harness using the current counter implementation displayed `+100`, cleared it after an unchanged refresh, then displayed `+16` rather than `+116`.
+- The test window was closed after verification. No new system permissions were requested.
+
+## Previous validation
+
 # VALIDATION — 2.0.1
 
 - Existing 47 checks passed after the layout change.

@@ -65,7 +65,18 @@ struct RollingNumbers: AnimatableModifier {
     var animatableData:NumberVector { get { numbers } set { numbers = newValue } }
     func body(content:Content) -> some View { Text(parts.render(numbers)).monospacedDigit() }
 }
+private struct RefreshRevisionKey: EnvironmentKey { static let defaultValue = 0 }
+extension EnvironmentValues {
+    var refreshRevision: Int {
+        get { self[RefreshRevisionKey.self] }
+        set { self[RefreshRevisionKey.self] = newValue }
+    }
+}
+private struct MetricSample: Equatable { var text: String; var revision: Int }
+private struct TokenSample: Equatable { var value: Double?; var revision: Int }
+
 struct MoneyTicker: View {
+    @Environment(\.refreshRevision) private var refreshRevision
     var text:String, enabled:Bool
     var showGain:Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -88,8 +99,8 @@ struct MoneyTicker: View {
             }
         }
             .onAppear { previous = parts; displayed = parts.vector }
-            .onChange(of:text) { value in
-                let next = NumericParts(value)
+            .onChange(of:MetricSample(text:text,revision:refreshRevision)) { sample in
+                let next = NumericParts(sample.text)
                 revision += 1; let token = revision
                 gain = nil; pulse = false
                 if let old = previous, enabled, !reduceMotion,
@@ -160,14 +171,14 @@ struct TokenDelta {
     mutating func observe(_ value:Double?) {
         guard let value, value.isFinite else { previous = nil; increase = 0; return }
         if let previous {
-            if value > previous { increase = value-previous }
-            else if value < previous { increase = 0 }
+            increase = max(0,value-previous)
         } else { increase = 0 }
         previous = value
     }
     var label:String { "↑ +" + String(format:"%.0f",increase) }
 }
 struct TokenCounter: View {
+    @Environment(\.refreshRevision) private var refreshRevision
     var value:Double?
     var fallback:String
     var animated:Bool
@@ -185,7 +196,8 @@ struct TokenCounter: View {
             }
         }.lineLimit(1).minimumScaleFactor(0.65)
          .onAppear { delta.observe(value) }
-         .onChange(of:value) { next in
+         .onChange(of:TokenSample(value:value,revision:refreshRevision)) { sample in
+             let next = sample.value
              let old = delta.previous
              delta.observe(next)
              if let old, let next, next > old { flashRevision += 1 }

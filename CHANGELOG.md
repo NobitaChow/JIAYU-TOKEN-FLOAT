@@ -2,6 +2,13 @@
 
 Notable changes are documented here using Added, Changed and Fixed categories. Version numbers follow semantic versioning while the project remains in early development.
 
+## [2.0.2] - 2026-09-15
+
+### Fixed
+- Recalculate displayed token and monetary deltas on every completed refresh, including unchanged samples.
+- Clear the previous token increment when a refresh reports no increase; each new increment replaces the previous one.
+- Keep all-project, project and conversation totals derived from the current usage snapshot, independent of display animations.
+
 ## [2.0.1] - 2026-09-15
 
 ### Fixed

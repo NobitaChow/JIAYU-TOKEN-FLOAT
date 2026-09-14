@@ -4,23 +4,23 @@
 
 <p align="center">A native macOS floating usage monitor · 原生 macOS 用量悬浮窗</p>
 
-**Version 2.0.1 · macOS 13+ · Apple Silicon · MIT**
+**Version 2.0.2 · macOS 13+ · Apple Silicon · MIT**
 
 查看 Codex 本机日志中的对话、分项目和全部项目用量，显示 tokens、美元及人民币等价估算。
 
 ## DOWNLOAD & INSTALL / 下载与安装
 
-- [Download 2.0.1 — Apple Silicon DMG](https://github.com/NobitaChow/jiayu-token-float/releases/download/v2.0.1/JIAYU-TOKEN-FLOAT-2.0.1-APPLE-SILICON.dmg)
-- [Release notes & SHA-256 checksums](https://github.com/NobitaChow/jiayu-token-float/releases/tag/v2.0.1)
+- [Download 2.0.2 — Apple Silicon DMG](https://github.com/NobitaChow/jiayu-token-float/releases/download/v2.0.2/JIAYU-TOKEN-FLOAT-2.0.2-APPLE-SILICON.dmg)
+- [Release notes & SHA-256 checksums](https://github.com/NobitaChow/jiayu-token-float/releases/tag/v2.0.2)
 - [Changelog](CHANGELOG.md)
 
 1. 退出正在运行的旧版。
-2. 打开 DMG，将 **JIAYU Token Float 2.0.1.app** 拖入「应用程序」。
+2. 打开 DMG，将 **JIAYU Token Float 2.0.2.app** 拖入「应用程序」。
 3. 从「应用程序」打开新版，避免同时运行多个版本。
 
 2.0 提供带拖入引导的 DMG、中文手册、源码、LOGO 和 SHA-256 校验值。本包采用本地 ad-hoc 签名，未获得 Apple 开发者公证。
 
-## 2.0.1 / 修复
+## 2.0.2 / 修复
 
 金额与速度的变化提示改为占位排列：宽度足够时排在数值后方，较窄时换到下一行，不再覆盖指标标题。
 

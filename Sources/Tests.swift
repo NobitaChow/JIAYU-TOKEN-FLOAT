@@ -60,7 +60,7 @@ func selfTests() {
         Tick(time:monitor.now.addingTimeInterval(offset),usage:u,model:model,tier:"default",turn:"test")
     }
     func snapshot(_ id:String,_ ticks:[Tick]) -> Snapshot {
-        Snapshot(project:id,parent:nil,fork:nil,id:id,path:id,name:id,model:"gpt-6-astra",tier:"default",running:true,loading:false,started:monitor.now.addingTimeInterval(-120),updated:monitor.now,finished:nil,total:Usage(),current:Usage(),ticks:ticks,error:nil)
+        Snapshot(project:id,parent:nil,fork:nil,id:id,path:id,name:id,model:"gpt-6-astra",tier:"default",running:true,loading:false,started:monitor.now.addingTimeInterval(-120),updated:monitor.now,finished:nil,total:ticks.reduce(Usage()) { acc,t in var v = acc; v.add(t.usage); return v },current:Usage(),ticks:ticks,error:nil)
     }
     monitor.sessions = [snapshot("A",[sample(-59),sample(-60),sample(1)]),snapshot("B",[sample(0),sample(-10,"unknown")])]
     check(monitor.value("全部人民币/分钟") == "≈¥0.11/分", "all-project CNY minute uses both projects, excludes expired and future ticks")
@@ -70,6 +70,18 @@ func selfTests() {
     check(monitor.value("全部人民币/分钟") == "≈¥0.00/分", "empty minute is zero without active conversation")
     monitor.fx = 10; monitor.sessions = [snapshot("A",[sample(0)])]
     check(monitor.value("全部人民币/分钟") == "≈¥0.08/分", "CNY minute follows configured exchange rate")
+    monitor.selected = "A"; monitor.projectChoice = "A"
+    let baseline = snapshot("A",[sample(0)])
+    monitor.sessions = [baseline]
+    let stableFields = ["全部 tokens","项目 tokens","对话 tokens","全部美元","项目美元","对话美元","全部人民币","项目人民币"]
+    let beforeRefresh = stableFields.map { monitor.value($0) }
+    for _ in 0..<5 { monitor.sessions = [baseline]; monitor.refreshRevision += 1 }
+    check(stableFields.map { monitor.value($0) } == beforeRefresh,"identical refreshed snapshots never accumulate tokens or money in any scope")
+    monitor.sessions = [snapshot("A",[sample(0),sample(0)])]
+    check(monitor.tokenValue("全部 tokens") == 2200 && monitor.tokenValue("项目 tokens") == 2200 && monitor.tokenValue("对话 tokens") == 2200,"fresh snapshot replaces all and project totals")
+    check(monitor.value("全部美元") == "≈$0.02" && monitor.value("项目美元") == "≈$0.02" && monitor.value("对话美元") == "≈$0.02","all project and conversation cost recomputed from latest snapshot")
+    monitor.sessions = [baseline]
+    check(stableFields.map { monitor.value($0) } == beforeRefresh,"reduced snapshot lowers totals instead of adding previous display")
     let screen = NSRect(x:0,y:0,width:1440,height:900)
     let low = NSRect(x:100,y:20,width:370,height:58)
     let high = NSRect(x:100,y:800,width:370,height:58)
@@ -95,7 +107,9 @@ func selfTests() {
     change.observe(3_440_001_234)
     check(change.label == "↑ +1234","exact delta remains visible even when B abbreviation is unchanged")
     change.observe(3_440_001_234)
-    check(change.increase == 1234,"unchanged poll preserves latest batch delta")
+    check(change.increase == 0,"unchanged refresh clears the previous delta")
+    change.observe(3_440_001_250)
+    check(change.increase == 16,"each refresh replaces rather than accumulates the delta")
     change.observe(20)
     check(change.increase == 0,"counter reset does not show positive growth")
     change.observe(nil); change.observe(3_440_001_234)
