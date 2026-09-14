@@ -2,6 +2,11 @@
 
 Notable changes are documented here using Added, Changed and Fixed categories. Version numbers follow semantic versioning while the project remains in early development.
 
+## [2.0.1] - 2026-09-15
+
+### Fixed
+- Lay out monetary/rate deltas after their values; wrap onto a separate line when narrow instead of overlapping metric headings.
+
 ## [2.0.0] - 2026-09-15
 
 First packaged update since 0.1.0; includes the source-only 0.1.1 and local 0.1.2 changes.
@@ -40,3 +45,5 @@ First packaged update since 0.1.0; includes the source-only 0.1.1 and local 0.1.
 
 [2.0.0]: https://github.com/NobitaChow/jiayu-token-float/compare/v0.1.0...v2.0.0
 [0.1.0]: https://github.com/NobitaChow/jiayu-token-float/releases/tag/v0.1.0
+
+[2.0.1]: https://github.com/NobitaChow/JIAYU-TOKEN-FLOAT/compare/v2.0.0...v2.0.1

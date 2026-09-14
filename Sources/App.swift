@@ -311,7 +311,7 @@ struct MainView: View {
                 row("本轮人民币等价",m.cost(m.currentTicks(s)).map { String(format:"≈¥%.2f",$0*m.fx) } ?? "价格待配置")
                 row("近 60 秒费用",money(m.rate(s))+"/分钟")
                 Text("仅统计所选对话，不合并子任务。用量按日志批次更新；费用为模型 token 的 API 等价估算，不含工具费用。人民币采用手动参考汇率 \(m.fx, specifier:"%.4f")。").font(.system(size:10)).foregroundStyle(.secondary).fixedSize(horizontal:false,vertical:true)
-                Text("日志更新：\(s.updated == .distantPast ? "等待数据" : s.updated.formatted(date:.omitted,time:.standard)) · v2.0.0").font(.system(size:10)).foregroundStyle(.secondary)
+                Text("日志更新：\(s.updated == .distantPast ? "等待数据" : s.updated.formatted(date:.omitted,time:.standard)) · v2.0.1").font(.system(size:10)).foregroundStyle(.secondary)
             } else { Text(m.message).foregroundStyle(.secondary) }
         }
     }
@@ -413,7 +413,7 @@ final class AppDelegate:NSObject,NSApplicationDelegate,NSWindowDelegate {
         panel.appearance = NSAppearance(named:.darkAqua)
         panel.becomesKeyOnlyIfNeeded = true
         panel.isFloatingPanel = true
-        panel.title = "JIAYU Token Float 2.0"; panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = true; panel.hidesOnDeactivate = false
+        panel.title = "JIAYU Token Float 2.0.1"; panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = true; panel.hidesOnDeactivate = false
         panel.level = monitor.top ? .floating : .normal; panel.collectionBehavior = [.canJoinAllSpaces,.fullScreenAuxiliary]; panel.delegate = self
         panel.contentView = FirstClickHostingView(rootView:MainView(m:monitor)); panel.isMovableByWindowBackground = false
         let d = UserDefaults.standard

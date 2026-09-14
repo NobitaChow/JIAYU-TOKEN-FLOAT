@@ -18,25 +18,25 @@ jobs:
       - name: Create guided DMG
         run: |
           mkdir -p dist
-          "$RUNNER_TEMP/dmg-env/bin/python" scripts/package_guide.py --app 'build/JIAYU Token Float 2.0.app' --manual Docs/JIAYU-TOKEN-FLOAT-2.0.0-MANUAL-ZH-CN.pdf --background Assets/installer-background.png --output dist/JIAYU-TOKEN-FLOAT-2.0.0-APPLE-SILICON.dmg
+          "$RUNNER_TEMP/dmg-env/bin/python" scripts/package_guide.py --app 'build/JIAYU Token Float 2.0.1.app' --manual Docs/JIAYU-TOKEN-FLOAT-2.0.0-MANUAL-ZH-CN.pdf --background Assets/installer-background.png --output dist/JIAYU-TOKEN-FLOAT-2.0.1-APPLE-SILICON.dmg
       - name: Verify final image and embedded application
         run: |
           set -euo pipefail
-          hdiutil verify dist/JIAYU-TOKEN-FLOAT-2.0.0-APPLE-SILICON.dmg
+          hdiutil verify dist/JIAYU-TOKEN-FLOAT-2.0.1-APPLE-SILICON.dmg
           mkdir -p "$RUNNER_TEMP/token-float-mount"
-          hdiutil attach -readonly -nobrowse -mountpoint "$RUNNER_TEMP/token-float-mount" dist/JIAYU-TOKEN-FLOAT-2.0.0-APPLE-SILICON.dmg
+          hdiutil attach -readonly -nobrowse -mountpoint "$RUNNER_TEMP/token-float-mount" dist/JIAYU-TOKEN-FLOAT-2.0.1-APPLE-SILICON.dmg
           trap 'hdiutil detach "$RUNNER_TEMP/token-float-mount"' EXIT
-          codesign --verify --deep --strict "$RUNNER_TEMP/token-float-mount/JIAYU Token Float 2.0.app"
-          cmp 'build/JIAYU Token Float 2.0.app/Contents/MacOS/TokenFloat' "$RUNNER_TEMP/token-float-mount/JIAYU Token Float 2.0.app/Contents/MacOS/TokenFloat"
+          codesign --verify --deep --strict "$RUNNER_TEMP/token-float-mount/JIAYU Token Float 2.0.1.app"
+          cmp 'build/JIAYU Token Float 2.0.1.app/Contents/MacOS/TokenFloat' "$RUNNER_TEMP/token-float-mount/JIAYU Token Float 2.0.1.app/Contents/MacOS/TokenFloat"
           test "$(readlink "$RUNNER_TEMP/token-float-mount/Applications")" = /Applications
           test -s "$RUNNER_TEMP/token-float-mount/使用说明书.pdf"
           test -s "$RUNNER_TEMP/token-float-mount/安装须知.txt"
-          shasum -a 256 dist/JIAYU-TOKEN-FLOAT-2.0.0-APPLE-SILICON.dmg > dist/DMG-SHA256.txt
-          shasum -a 256 'build/JIAYU Token Float 2.0.app/Contents/MacOS/TokenFloat' > dist/EXECUTABLE-SHA256.txt
+          shasum -a 256 dist/JIAYU-TOKEN-FLOAT-2.0.1-APPLE-SILICON.dmg > dist/DMG-SHA256.txt
+          shasum -a 256 'build/JIAYU Token Float 2.0.1.app/Contents/MacOS/TokenFloat' > dist/EXECUTABLE-SHA256.txt
           # Internal verification artifact; only the DMG is published as the installer.
-          ditto -c -k --sequesterRsrc --keepParent 'build/JIAYU Token Float 2.0.app' dist/application-for-verification.zip
+          ditto -c -k --sequesterRsrc --keepParent 'build/JIAYU Token Float 2.0.1.app' dist/application-for-verification.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: JIAYU-TOKEN-FLOAT-2.0.0-MACOS
+          name: JIAYU-TOKEN-FLOAT-2.0.1-MACOS
           path: dist/
           retention-days: 7

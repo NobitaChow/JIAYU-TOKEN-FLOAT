@@ -1,3 +1,12 @@
+# VALIDATION — 2.0.1
+
+- Existing 47 checks passed after the layout change.
+- A live SwiftUI layout harness exercised normal-width (240 pt), narrow (118 pt) and long-value (180 pt) displays with changing currency rates.
+- The increment occupied space after the amount when wide, and wrapped below it when narrow. Neither case overlapped the metric heading.
+- Test window was closed after visual inspection.
+
+## Previous 2.0 validation
+
 # VALIDATION — 2.0.0
 
 Validated on Apple Silicon macOS, 2026-09-15.

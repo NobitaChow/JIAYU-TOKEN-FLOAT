@@ -77,11 +77,16 @@ struct MoneyTicker: View {
     @State private var revision = 0
     var body:some View {
         let parts = NumericParts(text)
-        Text("").modifier(RollingNumbers(numbers:displayed,parts:parts))
-            .foregroundStyle(pulse ? (declining ? Color.red : Color.green) : Color.primary)
-            .overlay(alignment:.topTrailing) {
-                if let gain { Text(gain).font(.system(size:9,weight:.semibold,design:.monospaced)).foregroundStyle(declining ? Color.red : Color.green).offset(y:-13).allowsHitTesting(false) }
+        ViewThatFits(in:.horizontal) {
+            HStack(alignment:.firstTextBaseline,spacing:5) {
+                amount(parts)
+                increment
+            }.fixedSize(horizontal:true,vertical:false)
+            VStack(alignment:.leading,spacing:2) {
+                amount(parts).lineLimit(1).minimumScaleFactor(0.7)
+                increment.lineLimit(1).minimumScaleFactor(0.7)
             }
+        }
             .onAppear { previous = parts; displayed = parts.vector }
             .onChange(of:text) { value in
                 let next = NumericParts(value)
@@ -106,6 +111,18 @@ struct MoneyTicker: View {
             .onChange(of:enabled) { _ in gain = nil; pulse = false; displayed = NumericParts(text).vector }
             .accessibilityLabel(text)
     }
+    private func amount(_ parts:NumericParts) -> some View {
+        Text("").modifier(RollingNumbers(numbers:displayed,parts:parts))
+            .foregroundStyle(pulse ? (declining ? Color.red : Color.green) : Color.primary)
+    }
+    @ViewBuilder private var increment:some View {
+        if let gain {
+            Text(gain).font(.system(size:9,weight:.semibold,design:.monospaced))
+                .foregroundStyle(declining ? Color.red : Color.green)
+                .allowsHitTesting(false)
+        }
+    }
+
 }
 
 struct GlassSurface: View {
