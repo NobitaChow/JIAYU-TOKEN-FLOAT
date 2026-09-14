@@ -95,7 +95,7 @@ final class Session {
             while let end = pending[begin...].firstIndex(of:10) {
                 let line = pending[begin..<end]
                 // Ignore message bodies: only parse event records and model metadata.
-                if line.prefix(180).range(of:Data("\"event_msg\"".utf8)) != nil || line.prefix(180).range(of:Data("\"turn_context\"".utf8)) != nil || line.prefix(180).range(of:Data("\"session_meta\"".utf8)) != nil { consume(Data(line)) }
+                if line.range(of:Data("\"event_msg\"".utf8)) != nil || line.range(of:Data("\"turn_context\"".utf8)) != nil || line.range(of:Data("\"session_meta\"".utf8)) != nil { consume(Data(line)) }
                 begin = end+1
             }
             pending = Data(pending[begin...]); loading = offset < size; error = nil

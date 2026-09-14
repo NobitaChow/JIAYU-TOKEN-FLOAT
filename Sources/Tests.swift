@@ -1,7 +1,7 @@
-import Foundation
+import Cocoa
 func selfTests() {
     var checks = 0
-    func check(_ value:Bool,_ message:String) { precondition(value,message); checks += 1 }
+    func check(_ value:Bool,_ message:String) { if !value { fputs("FAIL: \(message)\n",stderr); exit(1) }; checks += 1 }
     let s = Session(path:"/tmp/test.jsonl")
     func emit(_ type:String,_ payload:[String:Any],_ seconds:Int = 0) {
         let date = Date(timeIntervalSince1970:1_780_000_000+Double(seconds))
@@ -70,5 +70,48 @@ func selfTests() {
     check(monitor.value("全部人民币/分钟") == "≈¥0.00/分", "empty minute is zero without active conversation")
     monitor.fx = 10; monitor.sessions = [snapshot("A",[sample(0)])]
     check(monitor.value("全部人民币/分钟") == "≈¥0.08/分", "CNY minute follows configured exchange rate")
+    let screen = NSRect(x:0,y:0,width:1440,height:900)
+    let low = NSRect(x:100,y:20,width:370,height:58)
+    let high = NSRect(x:100,y:800,width:370,height:58)
+    let up = PanelGeometry.expanded(anchor:low,height:483,screen:screen)
+    check(up.up && up.frame.minY == low.minY && up.frame.height == 483,"bottom-edge panel expands upward with fixed anchor")
+    let down = PanelGeometry.expanded(anchor:high,height:483,screen:screen)
+    check(!down.up && down.frame.maxY == high.maxY,"top-edge panel expands downward with fixed anchor")
+    check(PanelGeometry.expanded(anchor:low,height:579,screen:screen).frame.minY == low.minY,"settings resize preserves anchor")
+    check(PanelGeometry.clamp(low,to:screen) == low,"collapse restores original anchor")
+    let small = NSRect(x:-800,y:0,width:800,height:400)
+    let compact = PanelGeometry.expanded(anchor:NSRect(x:-700,y:170,width:370,height:58),height:579,screen:small)
+    check(small.contains(compact.frame),"small secondary screen keeps panel visible")
+    check(CurrencyParts("≈¥12.34/分")?.amount == 12.34,"animation parses observed rate")
+    check(CurrencyParts("≈$1.20")?.suffix == "","animation distinguishes cumulative cost")
+    check(CurrencyParts("—") == nil && CurrencyParts("12 tokens") == nil,"animation excludes non-currency values")
+    let pair = NumericParts("12.5K / 3.0K")
+    check(pair.vector.values == [12.5,3] && pair.render(pair.vector) == "12.5K / 3.0K","animate multiple token counters without changing units")
+    check(NumericParts("42 tokens").render(NumberVector(values:[43])) == "43 tokens","animate integer tokens")
+    check((NumberVector(values:[4,8])-NumberVector(values:[1,2])).values == [3,6],"numeric animation vector differences")
+    var change = TokenDelta()
+    change.observe(3_440_000_000)
+    check(change.increase == 0,"initial total is not an increment")
+    change.observe(3_440_001_234)
+    check(change.label == "↑ +1234","exact delta remains visible even when B abbreviation is unchanged")
+    change.observe(3_440_001_234)
+    check(change.increase == 1234,"unchanged poll preserves latest batch delta")
+    change.observe(20)
+    check(change.increase == 0,"counter reset does not show positive growth")
+    change.observe(nil); change.observe(3_440_001_234)
+    check(change.increase == 0,"loading completion starts a fresh baseline")
+    check(shouldAutoCollapse(expanded:true,pinned:false,inside:false,modal:false),"outside click collapses unpinned panel")
+    check(!shouldAutoCollapse(expanded:true,pinned:true,inside:false,modal:false),"pin retains details")
+    check(!shouldAutoCollapse(expanded:true,pinned:false,inside:true,modal:false),"inside click preserves panel")
+    check(!shouldAutoCollapse(expanded:true,pinned:false,inside:false,modal:true),"native dialog preserves panel")
+    monitor.sessions = [snapshot("A",[sample(-59),sample(-60),sample(1)]),snapshot("B",[sample(0)])]
+    check(monitor.value("全部 tokens/分钟") == "2200 tokens/分","minute token total excludes expired and future events across projects")
+    monitor.now = monitor.now.addingTimeInterval(62)
+    check(monitor.value("全部 tokens/分钟") == "0 tokens/分","rolling token rate can decrease without reducing cumulative usage")
+    let dockEdge = NSRect(x:100,y:0,width:370,height:58)
+    let aboveDock = NSRect(x:0,y:80,width:1440,height:800)
+    let temporary = PanelGeometry.clamp(dockEdge,to:aboveDock)
+    _ = PanelGeometry.expanded(anchor:temporary,height:650,screen:aboveDock)
+    check(dockEdge.minY == 0 && temporary.minY == 80,"temporary Dock avoidance never mutates collapsed anchor")
     print("PASS: \(checks) accounting and incremental-read checks")
 }

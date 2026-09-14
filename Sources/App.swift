@@ -3,7 +3,7 @@ import SwiftUI
 
 let appID = "studio.jiayu.tokenfloat"
 let defaultRoot = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".codex/sessions").path
-let fields = ["本轮 tokens", "美元/分钟", "人民币/分钟", "输出均速", "对话 tokens", "本轮美元", "对话美元", "项目 tokens", "项目美元", "全部 tokens", "全部美元", "项目美元/分钟", "全部美元/分钟", "项目人民币", "全部人民币", "全部人民币/分钟"]
+let fields = ["本轮 tokens", "美元/分钟", "人民币/分钟", "输出均速", "对话 tokens", "本轮美元", "对话美元", "项目 tokens", "项目美元", "全部 tokens", "全部美元", "项目美元/分钟", "全部美元/分钟", "项目人民币", "全部人民币", "全部人民币/分钟", "tokens/分钟", "项目 tokens/分钟", "全部 tokens/分钟"]
 func num(_ n: Double) -> String { n >= 1_000_000_000 ? String(format:"%.2fB",n/1_000_000_000) : n >= 1_000_000 ? String(format:"%.2fM",n/1_000_000) : n >= 1000 ? String(format:"%.1fK",n/1000) : String(format:"%.0f",n) }
 func money(_ n: Double?) -> String { n.map { String(format:"≈$%.2f",$0) } ?? "价格待配置" }
 func uiFont(_ size: CGFloat) -> Font { .custom("FZJunHeiS-M-GB", size:size).weight(.medium) }
@@ -20,8 +20,14 @@ final class Monitor: ObservableObject {
     @Published var selected = UserDefaults.standard.string(forKey:"selected") ?? "auto"
     @Published var scope = UserDefaults.standard.string(forKey:"scope") ?? "conversation"
     @Published var projectChoice = UserDefaults.standard.string(forKey:"projectChoice") ?? "auto"
-    @Published var expanded = false
+    @Published var pinned = UserDefaults.standard.bool(forKey:"pinnedExpanded")
+    @Published var expanded = UserDefaults.standard.bool(forKey:"pinnedExpanded")
     @Published var settings = false
+    @Published var windowWidth:CGFloat = CGFloat(UserDefaults.standard.object(forKey:"panelWidth") as? Double ?? 370)
+    @Published var expandedHeight:CGFloat = CGFloat(UserDefaults.standard.object(forKey:"expandedHeight") as? Double ?? 483)
+    @Published var opensUp = false
+    @Published var detailHeight: CGFloat = 424
+    @Published var animateMoney = UserDefaults.standard.object(forKey:"animateMoney") as? Bool ?? true
     @Published var now = Date()
     @Published var message = "正在寻找本地对话…"
     @Published var first = UserDefaults.standard.string(forKey:"first") ?? fields[0]
@@ -52,6 +58,9 @@ final class Monitor: ObservableObject {
     }
     func save() {
         let d = UserDefaults.standard
+        d.set(Double(windowWidth),forKey:"panelWidth"); d.set(Double(expandedHeight),forKey:"expandedHeight")
+        d.set(pinned,forKey:"pinnedExpanded")
+        d.set(animateMoney,forKey:"animateMoney")
         d.set(scope,forKey:"scope"); d.set(projectChoice,forKey:"projectChoice"); d.set(selected,forKey:"selected"); d.set(first,forKey:"first"); d.set(second,forKey:"second")
         d.set(fx,forKey:"fx"); d.set(top,forKey:"top"); d.set(root,forKey:"root")
         d.set(try? JSONEncoder().encode(prices),forKey:"prices")
@@ -145,8 +154,18 @@ final class Monitor: ObservableObject {
     func currentTicks(_ s: Snapshot) -> [Tick] { s.ticks.filter { $0.time >= s.started } }
     func recent(_ s: Snapshot) -> [Tick] { s.ticks.filter { $0.time > now.addingTimeInterval(-60) && $0.time <= now && $0.time >= s.started } }
     func rate(_ s: Snapshot) -> Double? { cost(recent(s)) }
+    func tokenValue(_ field:String) -> Double? {
+        if field == "全部 tokens" { return loadingCount == 0 ? allTicks.reduce(0) { $0+$1.usage.total } : nil }
+        if field == "项目 tokens" { return loadingCount == 0 ? projectTicks(chosenProject).reduce(0) { $0+$1.usage.total } : nil }
+        guard let s = active, !s.loading else { return nil }
+        if field == "本轮 tokens" { return s.current.total }
+        if field == "对话 tokens" { return s.total.total }
+        return nil
+    }
     func value(_ field: String) -> String {
         switch field {
+        case "全部 tokens/分钟": return String(format:"%.0f",lastMinute(allTicks).reduce(0) { $0+$1.usage.total })+" tokens/分"
+        case "项目 tokens/分钟": return String(format:"%.0f",lastMinute(projectTicks(chosenProject)).reduce(0) { $0+$1.usage.total })+" tokens/分"
         case "项目 tokens": return num(projectTicks(chosenProject).reduce(0) { $0+$1.usage.total }) + (loadingCount > 0 ? " · 读取中" : " tokens")
         case "项目美元": return costText(projectTicks(chosenProject))
         case "全部 tokens": return num(allTicks.reduce(0) { $0+$1.usage.total }) + (loadingCount > 0 ? " · 读取中" : " tokens")
@@ -161,6 +180,7 @@ final class Monitor: ObservableObject {
         guard let s = active else { return "—" }
         if s.loading { return "读取中…" }
         switch field {
+        case "tokens/分钟": return String(format:"%.0f",recent(s).reduce(0) { $0+$1.usage.total })+" tokens/分"
         case "本轮 tokens": return num(s.current.total)+" tokens"
         case "对话 tokens": return num(s.total.total)+" tokens"
         case "美元/分钟": return s.running ? money(rate(s))+"/分" : "已结束"
@@ -193,20 +213,46 @@ struct MainView: View {
     let accent = Color(red:0.45,green:0.91,blue:0.78)
     var body: some View {
         VStack(spacing:0) {
+            if m.expanded && m.opensUp { expandedContent }
+            header
+            if m.expanded && !m.opensUp { expandedContent }
+        }.frame(width:m.windowWidth).background(GlassSurface(radius:22))
+         .clipShape(RoundedRectangle(cornerRadius:22))
+         .overlay(alignment:.bottomTrailing) {
+             ResizeHandle().frame(width:16,height:16).padding(2).help("拖动调整窗口大小")
+         }
+
+         .foregroundStyle(Color.white).preferredColorScheme(.dark).font(uiFont(12))
+    }
+    var header: some View {
             HStack(spacing:10) {
                 Image(systemName:"circle.grid.2x2.fill").foregroundStyle(.secondary).frame(width:20,height:34).overlay(DragHandle()).help("按住这里拖动位置")
-                Button { m.expanded.toggle(); m.settings = false; resize() } label: {
+                Button { toggleDetails() } label: {
                     HStack(spacing:12) {
                         Circle().fill(m.active?.running == true ? accent : Color.gray).frame(width:7,height:7)
-                        VStack(alignment:.leading,spacing:3) { Text(m.first).font(.system(size:9)).foregroundStyle(.secondary); Text(m.value(m.first)).font(.system(size:14,weight:.semibold,design:.monospaced)) }
+                        VStack(alignment:.leading,spacing:3) { Text(m.first).font(.system(size:9)).foregroundStyle(.secondary); fieldValue(m.first).id(m.first + m.selected + m.chosenProject).font(.system(size:14,weight:.semibold,design:.monospaced)) }
                         Rectangle().fill(.white.opacity(0.12)).frame(width:1,height:24)
-                        VStack(alignment:.leading,spacing:3) { Text(m.second).font(.system(size:9)).foregroundStyle(.secondary); Text(m.value(m.second)).font(.system(size:13,weight:.medium,design:.monospaced)).foregroundStyle(accent) }
+                        VStack(alignment:.leading,spacing:3) { Text(m.second).font(.system(size:9)).foregroundStyle(.secondary); fieldValue(m.second).id(m.second + m.selected + m.chosenProject).font(.system(size:13,weight:.medium,design:.monospaced)).foregroundStyle(accent) }
                         Spacer(minLength:0)
-                        Image(systemName:m.expanded ? "chevron.up" : "chevron.down").font(.system(size:10)).foregroundStyle(.secondary)
                     }.contentShape(Rectangle())
-                }.buttonStyle(.plain).accessibilityLabel(m.expanded ? "收起明细" : "展开明细")
+                }.buttonStyle(.plain).frame(maxWidth:.infinity).accessibilityLabel("点击数值切换明细")
+                DisclosureControl(expanded:m.expanded,action:toggleDetails)
+                    .frame(width:36,height:42).background(GlassSurface(radius:12))
             }.padding(.horizontal,12).frame(height:58)
-            if m.expanded {
+    }
+    func toggleDetails() {
+        m.expanded.toggle()
+        if !m.expanded { m.pinned = false; m.save() }
+        m.settings = false; resize()
+    }
+    @ViewBuilder func fieldValue(_ field:String) -> some View {
+        if field.hasSuffix("tokens") {
+            TokenCounter(value:m.tokenValue(field),fallback:m.value(field),animated:m.animateMoney)
+                .id(field + (field == "全部 tokens" ? "all" : field == "项目 tokens" ? m.chosenProject : (m.active?.id ?? "none") + (field == "本轮 tokens" ? String(m.active?.started.timeIntervalSince1970 ?? 0) : "")))
+        } else { MoneyTicker(text:m.value(field),enabled:m.animateMoney) }
+    }
+    var expandedContent: some View {
+        Group {
                 Divider().overlay(.white.opacity(0.07))
                 ScrollView {
                     VStack(alignment:.leading,spacing:15) {
@@ -214,25 +260,32 @@ struct MainView: View {
                             Image(nsImage:NSImage(contentsOfFile:Bundle.main.path(forResource:"logo",ofType:"png") ?? "") ?? NSImage()).resizable().frame(width:22,height:22)
                             Text("JIAYU · TOKEN FLOAT").font(.system(size:10,weight:.semibold,design:.monospaced)).tracking(1.2).foregroundStyle(.secondary)
                             Spacer()
-                            Button { m.settings.toggle(); resize() } label:{ Image(systemName:"slider.horizontal.3") }.buttonStyle(.plain).help("显示与计价设置").accessibilityLabel("设置")
-                            Button { NSApp.terminate(nil) } label:{ Image(systemName:"xmark") }.buttonStyle(.plain).help("退出悬浮窗").accessibilityLabel("退出")
+                            Button {
+                                m.pinned.toggle(); m.expanded = true; m.settings = false; m.save(); resize()
+                            } label: { Image(systemName:m.pinned ? "pin.fill" : "pin").foregroundStyle(m.pinned ? Color.mint : Color.white) }
+                            .buttonStyle(GlassButtonStyle()).help(m.pinned ? "取消固定，点击外部自动收起" : "固定展开，保持详细信息")
+                            .accessibilityLabel(m.pinned ? "取消固定展开" : "固定展开")
+                            Button { m.settings.toggle(); resize() } label:{ Image(systemName:"slider.horizontal.3") }.buttonStyle(GlassButtonStyle()).help("显示与计价设置").accessibilityLabel("设置")
+                            Button { NSApp.terminate(nil) } label:{ Image(systemName:"xmark") }.buttonStyle(GlassButtonStyle()).help("退出悬浮窗").accessibilityLabel("退出")
                         }
                         if m.settings { SettingsView(m:m) }
                         else { details }
                     }.padding(18)
-                }.frame(height:m.settings ? 490 : 424)
+                }.frame(height:m.detailHeight)
             }
-        }.frame(width:370).background(Color(red:0.075,green:0.09,blue:0.11).opacity(0.97))
-         .clipShape(RoundedRectangle(cornerRadius:18))
-         .overlay(RoundedRectangle(cornerRadius:18).stroke(.white.opacity(0.16),lineWidth:1))
-         .foregroundStyle(Color.white).preferredColorScheme(.dark).font(uiFont(12))
     }
     func resize() { DispatchQueue.main.async { (NSApp.delegate as? AppDelegate)?.resize() } }
     var details: some View {
         VStack(alignment:.leading,spacing:14) {
-            Picker("统计范围",selection:$m.scope) {
-                Text("对话").tag("conversation"); Text("分项目").tag("project"); Text("全部项目").tag("all")
-            }.pickerStyle(.segmented).onChange(of:m.scope) { _ in m.save() }
+            HStack(spacing:6) {
+                ForEach([("conversation","对话"),("project","分项目"),("all","全部项目")],id:\.0) { key,label in
+                    Button { m.scope = key; m.save() } label: {
+                        Text(label).frame(maxWidth:.infinity).foregroundStyle(m.scope == key ? Color.mint : Color.white.opacity(0.7))
+                    }.buttonStyle(GlassButtonStyle())
+                     .overlay(RoundedRectangle(cornerRadius:12).stroke(m.scope == key ? Color.mint.opacity(0.55) : .clear,lineWidth:1).allowsHitTesting(false))
+                     .accessibilityLabel(label).accessibilityAddTraits(m.scope == key ? .isSelected : [])
+                }
+            }
             if m.scope != "conversation" { projectDetails }
             else { conversationDetails }
         }
@@ -247,7 +300,7 @@ struct MainView: View {
                 HStack { Text(s.model).font(.system(size:12,weight:.semibold,design:.monospaced)); Spacer(); Text(s.loading ? "读取中" : s.running ? "运行中" : "已结束").foregroundStyle(accent) }
                 if let e = s.error { Text(e).foregroundStyle(.orange) }
                 HStack(spacing:12) {
-                    tile("本轮累计",num(s.current.total),"tokens · 输入 + 输出")
+                    tile("本轮累计",num(s.current.total),"tokens · 输入 + 输出",rawTokens:s.loading ? nil : s.current.total)
                     tile("近 60 秒输出均速",String(format:"%.1f",m.recent(s).reduce(0){$0+$1.usage.output}/60),"tok/s · 按日志批次统计")
                 }
                 row("对话累计 tokens",String(format:"%.0f",s.total.total))
@@ -258,7 +311,7 @@ struct MainView: View {
                 row("本轮人民币等价",m.cost(m.currentTicks(s)).map { String(format:"≈¥%.2f",$0*m.fx) } ?? "价格待配置")
                 row("近 60 秒费用",money(m.rate(s))+"/分钟")
                 Text("仅统计所选对话，不合并子任务。用量按日志批次更新；费用为模型 token 的 API 等价估算，不含工具费用。人民币采用手动参考汇率 \(m.fx, specifier:"%.4f")。").font(.system(size:10)).foregroundStyle(.secondary).fixedSize(horizontal:false,vertical:true)
-                Text("日志更新：\(s.updated == .distantPast ? "等待数据" : s.updated.formatted(date:.omitted,time:.standard)) · v0.1.1").font(.system(size:10)).foregroundStyle(.secondary)
+                Text("日志更新：\(s.updated == .distantPast ? "等待数据" : s.updated.formatted(date:.omitted,time:.standard)) · v2.0.0").font(.system(size:10)).foregroundStyle(.secondary)
             } else { Text(m.message).foregroundStyle(.secondary) }
         }
     }
@@ -273,12 +326,13 @@ struct MainView: View {
             }
             let ticks = m.displayTicks
             let u = ticks.reduce(Usage()) { acc,t in var v = acc; v.add(t.usage); return v }
-            tile(m.scope == "all" ? "全部项目累计" : "项目累计",num(u.total),"tokens · 已记录的输入 + 输出")
+            tile(m.scope == "all" ? "全部项目累计" : "项目累计",num(u.total),"tokens · 已记录的输入 + 输出",rawTokens:m.loadingCount == 0 ? u.total : nil)
             row("API 等价累计",m.costText(ticks))
             row("人民币等价",m.cnyText(ticks))
             row("输入 / 缓存",num(u.input)+" / "+num(u.cached))
             row("输出 / 其中推理",num(u.output)+" / "+num(u.reasoning))
             let recent = ticks.filter { $0.time > m.now.addingTimeInterval(-60) && $0.time <= m.now }
+            row("近 60 秒 tokens",String(format:"%.0f",recent.reduce(0) { $0+$1.usage.total })+" tokens/分")
             row("近 60 秒费用",m.costText(recent)+"/分钟")
             row(m.scope == "all" ? "全部人民币/分钟" : "项目人民币/分钟",m.cnyText(recent)+"/分")
             row("项目 / 对话数", m.scope == "all" ? "\(m.projects.count) / \(m.sessions.count)" : "1 / \(m.sessions.filter { $0.project == m.chosenProject }.count)")
@@ -289,9 +343,9 @@ struct MainView: View {
             Text("按完整工作目录分项目，包含已记录用量的子任务；分叉历史前缀去重。仅覆盖本机可读取的日志，不等于账户账单。汇率为手动参考值。").font(.system(size:10)).foregroundStyle(.secondary)
         }
     }
-    func row(_ title:String,_ value:String) -> some View { HStack { Text(title).foregroundStyle(.secondary); Spacer(); Text(value).font(.system(size:12,weight:.medium,design:.monospaced)) } }
-    func tile(_ title:String,_ value:String,_ foot:String) -> some View {
-        VStack(alignment:.leading,spacing:7) { Text(title).font(.system(size:10)).foregroundStyle(.secondary); Text(value).font(.system(size:27,weight:.medium,design:.rounded)).foregroundStyle(accent); Text(foot).font(.system(size:9)).foregroundStyle(.secondary) }.frame(maxWidth:.infinity,alignment:.leading).padding(12).background(.white.opacity(0.04)).clipShape(RoundedRectangle(cornerRadius:12))
+    func row(_ title:String,_ value:String) -> some View { HStack { Text(title).foregroundStyle(.secondary); Spacer(); MoneyTicker(text:value,enabled:m.animateMoney).id(title + m.scope + m.selected + m.chosenProject).font(.system(size:12,weight:.medium,design:.monospaced)) } }
+    func tile(_ title:String,_ value:String,_ foot:String,rawTokens:Double? = nil) -> some View {
+        VStack(alignment:.leading,spacing:7) { Text(title).font(.system(size:10)).foregroundStyle(.secondary); Group { if foot.hasPrefix("tokens") { TokenCounter(value:rawTokens,fallback:value,animated:m.animateMoney) } else { MoneyTicker(text:value,enabled:m.animateMoney) } }.id(title + m.scope + (m.active?.id ?? "") + m.chosenProject).font(.system(size:27,weight:.medium,design:.rounded)).foregroundStyle(accent); Text(foot).font(.system(size:9)).foregroundStyle(.secondary) }.frame(maxWidth:.infinity,alignment:.leading).padding(12).background(GlassSurface(radius:16))
     }
 }
 struct SettingsView: View {
@@ -309,6 +363,7 @@ struct SettingsView: View {
             Text("折叠时显示").font(.headline)
             Picker("第一项",selection:$m.first) { ForEach(fields,id:\.self) { Text($0).tag($0) } }.onChange(of:m.first) { _ in m.save() }
             Picker("第二项",selection:$m.second) { ForEach(fields,id:\.self) { Text($0).tag($0) } }.onChange(of:m.second) { _ in m.save() }
+            Toggle("数值变化动画",isOn:$m.animateMoney).onChange(of:m.animateMoney) { _ in m.save() }
             Toggle("始终置顶",isOn:$m.top).onChange(of:m.top) { _ in m.save() }
             HStack { Text("1 美元 = 人民币"); TextField("手动汇率",text:$fxText).frame(width:75); Button("保存") { if let v = Double(fxText), v > 0, v.isFinite { m.fx = v; m.save(); note = "参考汇率已保存" } else { note = "请输入大于 0 的汇率" } } }
             Divider()
@@ -330,43 +385,115 @@ struct SettingsView: View {
             }
             Text(m.root).font(.system(size:9)).foregroundStyle(.secondary).lineLimit(2)
             Text(note).font(.system(size:10)).foregroundStyle(.green)
-        }.textFieldStyle(.roundedBorder).onAppear {
+        }.buttonStyle(GlassButtonStyle()).textFieldStyle(.roundedBorder).onAppear {
             fxText = String(m.fx); priceModel = m.active?.model ?? "gpt-6-astra"
             if let p = m.prices[priceModel] { input = String(p.input); cached = String(p.cached); output = String(p.output); write = String(p.write); longContext = p.longContext }
         }
     }
 }
-final class FloatingPanel:NSPanel { override var canBecomeKey:Bool { true }; override var canBecomeMain:Bool { true } }
+final class FloatingPanel:NSPanel {
+    var acceptsKeyboard = false
+    override var canBecomeKey:Bool { acceptsKeyboard }
+    override var canBecomeMain:Bool { false }
+}
 final class AppDelegate:NSObject,NSApplicationDelegate,NSWindowDelegate {
     var panel:FloatingPanel!, monitor:Monitor!, status:NSStatusItem!
+    var anchor = NSRect(x:120,y:200,width:370,height:58)
+    var changingFrame = false
+    var wasExpanded = false
+    var lastOrigin = NSPoint.zero
+    var passItem:NSMenuItem!
+    var outsideMonitor:Any?
+    var localMonitor:Any?
+
     func applicationDidFinishLaunching(_ notification:Notification) {
         NSApp.setActivationPolicy(.accessory)
         monitor = Monitor()
         panel = FloatingPanel(contentRect:NSRect(x:120,y:200,width:370,height:58),styleMask:[.borderless,.nonactivatingPanel],backing:.buffered,defer:false)
-        panel.title = "JIAYU Token Float 0.1.1"; panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = true; panel.hidesOnDeactivate = false
+        panel.appearance = NSAppearance(named:.darkAqua)
+        panel.becomesKeyOnlyIfNeeded = true
+        panel.isFloatingPanel = true
+        panel.title = "JIAYU Token Float 2.0"; panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = true; panel.hidesOnDeactivate = false
         panel.level = monitor.top ? .floating : .normal; panel.collectionBehavior = [.canJoinAllSpaces,.fullScreenAuxiliary]; panel.delegate = self
-        panel.contentView = NSHostingView(rootView:MainView(m:monitor)); panel.isMovableByWindowBackground = false
+        panel.contentView = FirstClickHostingView(rootView:MainView(m:monitor)); panel.isMovableByWindowBackground = false
         let d = UserDefaults.standard
         if d.object(forKey:"windowX") != nil { panel.setFrameOrigin(NSPoint(x:d.double(forKey:"windowX"),y:d.double(forKey:"windowY"))) }
-        clamp(); panel.orderFrontRegardless()
+        panel.ignoresMouseEvents = false
+        anchor = panel.frame; anchor.size.width = monitor.windowWidth; resize(); panel.orderFrontRegardless()
         status = NSStatusBar.system.statusItem(withLength:NSStatusItem.variableLength); status.button?.image = NSImage(systemSymbolName:"gauge.with.dots.needle.50percent",accessibilityDescription:"Token Float")
         let menu = NSMenu()
         menu.addItem(withTitle:"显示悬浮窗",action:#selector(show),keyEquivalent:"")
+        passItem = menu.addItem(withTitle:"鼠标穿透（再次点击恢复）",action:#selector(togglePass),keyEquivalent:"")
         menu.addItem(withTitle:"重置窗口位置",action:#selector(resetPosition),keyEquivalent:"")
         menu.addItem(NSMenuItem.separator()); menu.addItem(withTitle:"退出 Token Float",action:#selector(quit),keyEquivalent:"q")
         for item in menu.items { item.target = self }; status.menu = menu
     }
-    @objc func show() { panel.orderFrontRegardless() }
-    @objc func quit() { NSApp.terminate(nil) }
-    @objc func resetPosition() { panel.setFrameOrigin(NSPoint(x:120,y:200)); clamp() }
-    func resize() { let h:CGFloat = monitor.expanded ? (monitor.settings ? 549 : 483) : 58; let f = panel.frame; panel.setFrame(NSRect(x:f.minX,y:f.maxY-h,width:370,height:h),display:true); clamp() }
-    func clamp() {
-        guard let screen = NSScreen.screens.first(where:{$0.visibleFrame.intersects(panel.frame)}) ?? NSScreen.main else { return }
-        let v = screen.visibleFrame; var f = panel.frame
-        f.origin.x = max(v.minX,min(f.minX,v.maxX-f.width)); f.origin.y = max(v.minY,min(f.minY,v.maxY-f.height)); panel.setFrame(f,display:true)
+    @objc func show() { panel.ignoresMouseEvents = false; passItem.state = .off; panel.orderFrontRegardless() }
+    @objc func togglePass() {
+        panel.ignoresMouseEvents.toggle(); passItem.state = panel.ignoresMouseEvents ? .on : .off
+        if panel.ignoresMouseEvents { monitor.expanded = false; monitor.settings = false; resize() }
     }
-    func windowDidMove(_ notification:Notification) { UserDefaults.standard.set(panel.frame.minX,forKey:"windowX"); UserDefaults.standard.set(panel.frame.minY,forKey:"windowY") }
-    func applicationWillTerminate(_ notification:Notification) { monitor?.timer?.invalidate(); monitor?.save() }
+    @objc func quit() { NSApp.terminate(nil) }
+    @objc func resetPosition() { anchor.origin = NSPoint(x:120,y:200); resize(); saveAnchor() }
+    func resize() {
+        guard let screen = NSScreen.screens.first(where:{$0.frame.intersects(anchor)}) ?? NSScreen.main else { return }
+        if !wasExpanded && monitor.expanded { anchor = panel.frame }
+        monitor.windowWidth = min(screen.visibleFrame.width,max(320,min(800,monitor.windowWidth)))
+        anchor.size.width = monitor.windowWidth
+        // Expansion may avoid Dock/menu bar, but never rewrite the user's collapsed position.
+        if !NSScreen.screens.contains(where: { $0.frame.intersects(anchor) }) {
+            anchor = PanelGeometry.clamp(anchor,to:screen.visibleFrame)
+        }
+        let expansionAnchor = PanelGeometry.clamp(anchor,to:screen.visibleFrame)
+        let height:CGFloat = monitor.expanded ? (monitor.settings ? max(579,monitor.expandedHeight) : monitor.pinned ? max(650,monitor.expandedHeight) : monitor.expandedHeight) : 58
+        let layout = PanelGeometry.expanded(anchor:expansionAnchor,height:height,screen:screen.visibleFrame)
+        monitor.opensUp = layout.up
+        monitor.detailHeight = max(0,layout.frame.height-59)
+        let shouldRelease = panel.acceptsKeyboard && !monitor.settings
+        panel.acceptsKeyboard = monitor.expanded && monitor.settings
+        if shouldRelease { panel.makeFirstResponder(nil); panel.orderOut(nil) }
+        changingFrame = true
+        panel.setFrame(monitor.expanded ? layout.frame : anchor,display:true)
+        lastOrigin = panel.frame.origin
+        changingFrame = false; wasExpanded = monitor.expanded
+        if shouldRelease { panel.orderFrontRegardless() }
+        saveAnchor()
+        updateOutsideMonitor()
+    }
+    func userResize(width:CGFloat,height:CGFloat) {
+        monitor.windowWidth = max(320,min(800,width))
+        if monitor.expanded { monitor.expandedHeight = max(300,min(1000,height)) }
+        resize(); monitor.save()
+    }
+    func saveAnchor() {
+        UserDefaults.standard.set(anchor.minX,forKey:"windowX")
+        UserDefaults.standard.set(anchor.minY,forKey:"windowY")
+    }
+    func windowDidMove(_ notification:Notification) {
+        guard !changingFrame else { return }
+        let origin = panel.frame.origin
+        anchor.origin.x += origin.x-lastOrigin.x; anchor.origin.y += origin.y-lastOrigin.y
+        lastOrigin = origin; saveAnchor()
+    }
+    func stopOutsideMonitor() {
+        if let outsideMonitor { NSEvent.removeMonitor(outsideMonitor) }; outsideMonitor = nil
+        if let localMonitor { NSEvent.removeMonitor(localMonitor) }; localMonitor = nil
+    }
+    func collapseOutside() {
+        guard shouldAutoCollapse(expanded:monitor.expanded,pinned:monitor.pinned,inside:panel.frame.contains(NSEvent.mouseLocation),modal:NSApp.modalWindow != nil || panel.attachedSheet != nil) else { return }
+        monitor.expanded = false; monitor.settings = false; resize()
+    }
+    func updateOutsideMonitor() {
+        guard monitor.expanded && !monitor.pinned else { stopOutsideMonitor(); return }
+        guard outsideMonitor == nil else { return }
+        // Observe mouse clicks only. Never intercept or consume another app's input.
+        outsideMonitor = NSEvent.addGlobalMonitorForEvents(matching:[.leftMouseDown,.rightMouseDown,.otherMouseDown]) { [weak self] _ in self?.collapseOutside() }
+        localMonitor = NSEvent.addLocalMonitorForEvents(matching:[.leftMouseDown,.rightMouseDown,.otherMouseDown]) { [weak self] event in
+            if let self, event.window !== self.panel, event.window?.level == .normal { self.collapseOutside() }
+            return event
+        }
+    }
+    func applicationWillTerminate(_ notification:Notification) { stopOutsideMonitor(); monitor?.timer?.invalidate(); monitor?.save() }
 }
 @main enum Entry {
     static func main() {

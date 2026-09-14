@@ -1,16 +1,10 @@
-JIAYU STUDIO · 用量悬浮窗 0.1.1
+JIAYU TOKEN FLOAT 2.0.0 · JIAYU STUDIO
 
-1. 如果正在运行旧版，请先从菜单栏退出。
-2. 将左侧 JIAYU Token Float 0.1.1 拖入右侧 Applications。
-3. 从「应用程序」打开应用，随后弹出安装磁盘。
+退出旧版，打开 DMG，将 JIAYU Token Float 2.0.app 拖入「应用程序」，然后启动新版。
+左侧四点移动窗口；右侧箭头展开／收起；右下角拖动调整大小。
+图钉固定展开。未固定时，点击外部自动收起。
+菜单栏“显示悬浮窗”可关闭鼠标穿透并恢复操作。
 
-适用于 macOS 13 及以上、Apple Silicon（M 系列）。
-首次扫描本地日志可能需要数分钟，扫描完成前显示部分统计。
-按住悬浮窗左侧四点拖动，单击数值展开，在设置中自定义折叠字段。
-详细使用方法与计量口径请阅读同盘「使用说明书.pdf」。
-
-应用不联网、不读取钥匙串或认证文件，无需录屏、辅助功能或管理员权限。
-金额是 API 等价估算，不是订阅扣费或账户账单。
-本包采用本地 ad-hoc 签名，尚未获得 Apple 开发者公证。
-
-源码及后续版本：https://github.com/NobitaChow/jiayu-token-float
+macOS 13+ / Apple Silicon。应用为 ad-hoc 签名，尚未公证。
+费用为 API 等价估算，详细说明见仓库 README。
+https://github.com/NobitaChow/jiayu-token-float

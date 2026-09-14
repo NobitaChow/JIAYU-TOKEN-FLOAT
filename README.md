@@ -1,81 +1,68 @@
-# JIAYU Token Float · 用量悬浮窗 0.1.1
+# JIAYU TOKEN FLOAT
 
-<p align="center"><img src="Assets/logo.png" width="160" alt="JIAYU STUDIO 用量悬浮窗"></p>
+<p align="center"><img src="Assets/logo.png" width="160" alt="JIAYU STUDIO · JIAYU TOKEN FLOAT"></p>
 
-<p align="center">JIAYU STUDIO · 把每次运行，看得更清楚。</p>
+<p align="center">A native macOS floating usage monitor · 原生 macOS 用量悬浮窗</p>
 
-一个为 Codex 本地会话制作的 macOS 原生悬浮用量窗口。可以自由拖动，收起时看关键数值，展开后查看对话、分项目和全部项目的 tokens 与美元／人民币等价估算。
+**Version 2.0.0 · macOS 13+ · Apple Silicon · MIT**
 
-## 下载与安装
+查看 Codex 本机日志中的对话、分项目和全部项目用量，显示 tokens、美元及人民币等价估算。
 
-当前源码为 0.1.1，已通过构建、24 项检查及窗口功能验证；新版 DMG 尚未发布。下方正式安装包仍为 0.1.0。
+## DOWNLOAD & INSTALL / 下载与安装
 
-- [已发布的 0.1.0 安装包](https://github.com/NobitaChow/jiayu-token-float/releases/tag/v0.1.0)
-- [0.1.0 中文手册（新版变化见下文）](https://github.com/NobitaChow/jiayu-token-float/releases/download/v0.1.0/JIAYU-Token-Float-0.1.0-Manual-zh-CN.pdf)
-- [全部发布文件与校验值](https://github.com/NobitaChow/jiayu-token-float/releases/tag/v0.1.0)
+- [Download 2.0.0 — Apple Silicon DMG](https://github.com/NobitaChow/jiayu-token-float/releases/download/v2.0.0/JIAYU-TOKEN-FLOAT-2.0.0-APPLE-SILICON.dmg)
+- [Release notes & SHA-256 checksums](https://github.com/NobitaChow/jiayu-token-float/releases/tag/v2.0.0)
+- [Changelog](CHANGELOG.md)
 
-适用于 **macOS 13 及以上、Apple Silicon（M 系列）**。
+1. 退出正在运行的旧版。
+2. 打开 DMG，将 **JIAYU Token Float 2.0.app** 拖入「应用程序」。
+3. 从「应用程序」打开新版，避免同时运行多个版本。
 
-1. 打开 DMG，将应用拖入「应用程序」。
-2. 从「应用程序」启动对应版本的 **JIAYU Token Float**，然后弹出安装磁盘。
-3. 更新已有安装时，请先退出正在运行的旧版，再完成替换。
+2.0 提供带拖入引导的 DMG、中文手册、源码、LOGO 和 SHA-256 校验值。本包采用本地 ad-hoc 签名，未获得 Apple 开发者公证。
 
-本包采用本地 ad-hoc 签名，尚未获得 Apple 开发者公证。
+## FEATURES / 功能
 
-## 0.1.1 更新
+- **统计范围**：对话、分项目、全部项目；可自定义折叠时显示的两项指标。
+- **精确增量**：如 `3.44B ↑ +1234`，即使缩写总量不变也能看见最近一批新增 tokens。每次增加闪烁三次。
+- **变化动画**：数字平滑过渡；每分钟数值上涨为绿色，下降为红色并显示差额。可关闭动画，遵循系统降低动态效果。
+- **窗口交互**：独立展开箭头；点击外部自动收起；图钉固定详细展开；自动向上／向下展开，收起恢复原位置。
+- **拖动与缩放**：左侧四点移动窗口，右下角手柄调整宽度及展开高度，位置和尺寸自动保存。
+- **玻璃风格**：半透明背景、卡片和按钮；降低透明度时使用实色。兼容 macOS 13，并非新版系统专属 Liquid Glass API。
+- **输入控制**：普通查看不获取键盘焦点；设置页允许输入。菜单栏可切换鼠标穿透，选择“显示悬浮窗”恢复操作。
 
-- 去掉金额后的待计价字样，详情仍说明未计入的模型。
-- 新增「全部人民币/分钟」，可选为折叠字段，全部项目详情同步显示。
+## ACCOUNTING / 统计口径
 
-## 操作
+- tokens 总量为输入加输出；缓存输入包含在输入中，推理输出包含在输出中，不重复累加。
+- 每分钟 tokens 是最近 60 秒已记录的输入加输出；输出均速为最近 60 秒输出除以 60。日志分批更新，不是逐 token 实时测量。
+- 箭头增量表示最近一次观察到的累计变化，不等于每秒速度。首次加载、切换对象和计数重置不显示虚假增长。
+- 费用是模型 tokens 的 API 等价估算，不是订阅扣费或账户账单，不含工具费用。金额保留两位小数。
+- 只计算已配置价格的模型；缺价模型在详情列出，全部缺价时显示 `—`。
+- 人民币使用可修改的手动参考汇率，默认 7.0，不是实时汇率。
+- 项目按完整工作目录分组，汇总已记录子任务并剔除匹配的分叉历史前缀。仅覆盖本机可读取的日志。
+- 首次扫描可能需要数分钟，期间显示部分统计。后续通过本地数值缓存加快启动。
 
-- 按住左侧四点拖动；位置自动保存。
-- 单击数值区域展开或收起。
-- 展开后在「对话 / 分项目 / 全部项目」之间切换。
-- 对话默认跟随最近开始运行的主任务，也可手动锁定。不会跟随当前前台窗口；任务名称显示工作目录和对话 ID。
-- 分项目按日志的完整工作目录分组，包含该目录下已记录用量的子任务；全部项目汇总本机可读取的 sessions 和 archived_sessions。
-- 设置中可选择两项折叠字段，包括项目、全部项目的 tokens、美元、人民币和费用/分钟；也可修改置顶、参考汇率、模型单价、日志目录。
-- 菜单栏图标可重新显示、重置位置或退出。
+## PRIVACY / 本地数据
 
-金额保留两位小数（0.01）。
+应用不联网，不读取认证文件或钥匙串。外部自动收起只观察鼠标点击，不读取键盘输入、不消费其他应用的事件；收起或固定时移除观察器。
 
-## 统计口径
+设置域为 `studio.jiayu.tokenfloat`。缓存位于 `~/Library/Caches/studio.jiayu.tokenfloat/accounting-v1.json`，包含用量数值及项目路径，不包含对话正文。
 
-- 本轮：最近一次 task_started 之后的输入 + 输出；对话：该对话日志的累计。
-- 缓存输入是输入的一部分；推理输出是输出的一部分，均不重复加进总量。
-- 已有累计计数时，用差分防止重复日志重复计量。分叉仅剔除与其已读取父会话匹配的历史前缀。
-- 速度为最近 60 秒日志记录的输出 tokens / 60，包含推理输出；日志分批到达，无法还原逐 token 的生成速度。
-- 美元/分钟是最近 60 秒已记录的 token 等价费用，不是未来费用预测。
-- Astra 和 GPT-5.6 Sol/Terra/Luna 采用 2026-09-13 核对的标准 API 价格。fast/priority 按 2 倍估算；长上下文按界面规则估算。其他模型可自定义；金额只显示已配置模型的小计；全部模型价格缺失时显示「—」，详情列出未计入的模型。
-- 人民币默认采用手动参考汇率 7.0，非实时汇率，可在设置更改。
-- 所有金额均为模型 tokens 的 API 等价估算，不是订阅扣费，不含工具等其他费用。
-- 首次扫描可能需要数分钟，读取期间明确标为部分统计。后续使用只保存数值和项目路径的本地缓存加快启动。
-- 本地日志缺失、未同步远程任务或缺少用量事件时，无法纳入完整统计。此程序不等于账户全量账单。
+## BUILD & VALIDATION
 
-## 本地数据与权限
+```sh
+./build.sh
+```
 
-不联网、不读取认证文件或钥匙串，不需要辅助功能、录屏或管理员权限。只读日志。
-设置：macOS UserDefaults，域 studio.jiayu.tokenfloat。
-可丢弃缓存：~/Library/Caches/studio.jiayu.tokenfloat/accounting-v1.json；不缓存对话正文。
+构建使用 SwiftUI / AppKit，目标为 arm64 macOS 13。47 项检查通过；已验证独立箭头的坐标点击、精确增量布局、固定详情和拖动缩放。安装包及已安装应用的可执行文件一致。验证边界见 [VALIDATION.md](VALIDATION.md)。
 
-## 构建与测试
+## PRICING REFERENCES
 
-运行 ./build.sh。构建会执行计量自测。
-源码使用 SwiftUI / AppKit；ccusage 移植部分的 MIT 许可见 ThirdParty。
-本地 ad-hoc 签名，无 Apple 开发者公证。
+内置价格快照核对于 2026-09-13，可在设置覆盖：
 
-## 价格来源
-
-- https://developers.openai.com/api/docs/models/gpt-6-astra
-- https://developers.openai.com/api/docs/models/gpt-5.6-sol
-- https://developers.openai.com/api/docs/models/gpt-5.6-terra
-- https://developers.openai.com/api/docs/models/gpt-5.6-luna
-
-## 已验证与限制
-
-0.1.1 已通过 24 项计量自测，包括跨项目人民币分钟费用、60 秒时间边界、缺价显示和汇率变更。已检查新版实际窗口的金额显示、全部项目人民币分钟费用和折叠字段选项。系统未授予应用程序目录写权限，新版尚未替换已安装版本。
-
-速度是日志的 60 秒滑动统计，无法还原逐 token 流式生成速度。费用是 API 等价估算；本地日志覆盖范围不等于账户全部用量。0.1.1 更新了金额显示及全部项目人民币分钟费用。
+- [GPT-6 Astra](https://developers.openai.com/api/docs/models/gpt-6-astra)
+- [GPT-5.6 Sol](https://developers.openai.com/api/docs/models/gpt-5.6-sol)
+- [GPT-5.6 Terra](https://developers.openai.com/api/docs/models/gpt-5.6-terra)
+- [GPT-5.6 Luna](https://developers.openai.com/api/docs/models/gpt-5.6-luna)
 
 ## 开源来源与许可
 
