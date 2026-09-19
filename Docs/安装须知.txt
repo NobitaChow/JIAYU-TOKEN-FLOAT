@@ -1,6 +1,6 @@
-JIAYU TOKEN FLOAT 2.0.2 · JIAYU STUDIO
+JIAYU TOKEN FLOAT 2.1.0 · JIAYU STUDIO
 
-退出旧版，打开 DMG，将 JIAYU Token Float 2.0.2.app 拖入「应用程序」，然后启动新版。
+退出旧版，打开 DMG，将 JIAYU Token Float 2.1.0.app 拖入「应用程序」，然后启动新版。
 左侧四点移动窗口；右侧箭头展开／收起；右下角拖动调整大小。
 图钉固定展开。未固定时，点击外部自动收起。
 菜单栏“显示悬浮窗”可关闭鼠标穿透并恢复操作。

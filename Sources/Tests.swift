@@ -2,6 +2,14 @@ import Cocoa
 func selfTests() {
     var checks = 0
     func check(_ value:Bool,_ message:String) { if !value { fputs("FAIL: \(message)\n",stderr); exit(1) }; checks += 1 }
+    var follow = FollowPolicy()
+    check(follow.update(clientRunning:false) == .stop,"follower starts closed when client is absent")
+    check(follow.update(clientRunning:true) == .launch,"client launch opens companion")
+    check(follow.update(clientRunning:true) == .none,"repeated client events do not duplicate or reopen manually closed companion")
+    check(follow.update(clientRunning:false) == .stop,"client exit closes companion")
+    check(follow.update(clientRunning:true) == .launch,"subsequent client launch opens companion again")
+    var existing = FollowPolicy()
+    check(existing.update(clientRunning:true) == .launch,"enabling while client is already running opens companion")
     let s = Session(path:"/tmp/test.jsonl")
     func emit(_ type:String,_ payload:[String:Any],_ seconds:Int = 0) {
         let date = Date(timeIntervalSince1970:1_780_000_000+Double(seconds))

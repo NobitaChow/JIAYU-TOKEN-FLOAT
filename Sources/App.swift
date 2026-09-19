@@ -313,7 +313,7 @@ struct MainView: View {
                 row("本轮人民币等价",m.cost(m.currentTicks(s)).map { String(format:"≈¥%.2f",$0*m.fx) } ?? "价格待配置")
                 row("近 60 秒费用",money(m.rate(s))+"/分钟")
                 Text("仅统计所选对话，不合并子任务。用量按日志批次更新；费用为模型 token 的 API 等价估算，不含工具费用。人民币采用手动参考汇率 \(m.fx, specifier:"%.4f")。").font(.system(size:10)).foregroundStyle(.secondary).fixedSize(horizontal:false,vertical:true)
-                Text("日志更新：\(s.updated == .distantPast ? "等待数据" : s.updated.formatted(date:.omitted,time:.standard)) · v2.0.2").font(.system(size:10)).foregroundStyle(.secondary)
+                Text("日志更新：\(s.updated == .distantPast ? "等待数据" : s.updated.formatted(date:.omitted,time:.standard)) · v2.1.0").font(.system(size:10)).foregroundStyle(.secondary)
             } else { Text(m.message).foregroundStyle(.secondary) }
         }
     }
@@ -352,6 +352,7 @@ struct MainView: View {
 }
 struct SettingsView: View {
     @ObservedObject var m:Monitor
+    @State var followClient = FollowSettings.enabled
     @State var fxText = ""
     @State var priceModel = ""
     @State var input = ""
@@ -362,6 +363,11 @@ struct SettingsView: View {
     @State var note = ""
     var body: some View {
         VStack(alignment:.leading,spacing:14) {
+            Toggle("跟随 Codex 客户端开启／退出",isOn:Binding(get:{ followClient },set:{ next in
+                do { try FollowSettings.setEnabled(next); followClient = next; note = next ? "已开启客户端跟随" : "已关闭客户端跟随" }
+                catch { note = error.localizedDescription }
+            }))
+            Text("客户端完全退出时关闭悬浮窗；仅关窗口不退出。手动退出悬浮窗后，下次启动客户端才重新打开。").font(.system(size:10)).foregroundStyle(.secondary)
             Text("折叠时显示").font(.headline)
             Picker("第一项",selection:$m.first) { ForEach(fields,id:\.self) { Text($0).tag($0) } }.onChange(of:m.first) { _ in m.save() }
             Picker("第二项",selection:$m.second) { ForEach(fields,id:\.self) { Text($0).tag($0) } }.onChange(of:m.second) { _ in m.save() }
@@ -415,7 +421,7 @@ final class AppDelegate:NSObject,NSApplicationDelegate,NSWindowDelegate {
         panel.appearance = NSAppearance(named:.darkAqua)
         panel.becomesKeyOnlyIfNeeded = true
         panel.isFloatingPanel = true
-        panel.title = "JIAYU Token Float 2.0.2"; panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = true; panel.hidesOnDeactivate = false
+        panel.title = "JIAYU Token Float 2.1.0"; panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = true; panel.hidesOnDeactivate = false
         panel.level = monitor.top ? .floating : .normal; panel.collectionBehavior = [.canJoinAllSpaces,.fullScreenAuxiliary]; panel.delegate = self
         panel.contentView = FirstClickHostingView(rootView:MainView(m:monitor)); panel.isMovableByWindowBackground = false
         let d = UserDefaults.standard
@@ -499,6 +505,10 @@ final class AppDelegate:NSObject,NSApplicationDelegate,NSWindowDelegate {
 }
 @main enum Entry {
     static func main() {
+        if CommandLine.arguments.contains("--enable-follow") || CommandLine.arguments.contains("--disable-follow") {
+            do { try FollowSettings.setEnabled(CommandLine.arguments.contains("--enable-follow")) }
+            catch { fputs(error.localizedDescription+"\n",stderr); exit(1) }; return
+        }
         if CommandLine.arguments.contains("--self-test") { selfTests(); return }
         let app = NSApplication.shared; let delegate = AppDelegate(); app.delegate = delegate; app.run()
     }

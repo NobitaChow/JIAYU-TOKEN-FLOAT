@@ -1,3 +1,12 @@
+# VALIDATION — 2.1.0
+
+- 58 automated checks passed, including absent/already-running clients, repeated lifecycle events, exit, relaunch and manual-quit policy.
+- Live macOS fixture integration with the bundled ClientFollower: host launch started the companion; after manual exit and host relaunch, both processes ran; host exit terminated both fixture processes. Verified via process state without reopening the companion for inspection.
+- Fixture applications and their follower process were stopped after testing. No new TCC permissions were requested.
+- The current Codex client was deliberately not restarted during this active task. Its installed bundle identifier was verified as com.openai.codex.
+
+## Previous validation
+
 # VALIDATION — 2.0.2
 
 - 52 automated checks passed, including identical snapshots, reduced snapshots, all/project/conversation totals and costs, and replacement of per-refresh increments.

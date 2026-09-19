@@ -2,6 +2,15 @@
 
 Notable changes are documented here using Added, Changed and Fixed categories. Version numbers follow semantic versioning while the project remains in early development.
 
+## [2.1.0] - 2026-09-19
+
+### Added
+- Optional launch/quit following for the current Codex client (`com.openai.codex`), including clients displayed as ChatGPT.
+- A per-user background lifecycle observer and a settings switch to enable or remove it without Accessibility or Screen Recording permissions.
+
+### Changed
+- Manual Quit keeps Token Float closed until the next client launch; closing only a client window does not stop the companion.
+
 ## [2.0.2] - 2026-09-15
 
 ### Fixed

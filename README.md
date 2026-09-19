@@ -4,23 +4,23 @@
 
 <p align="center">A native macOS floating usage monitor · 原生 macOS 用量悬浮窗</p>
 
-**Version 2.0.2 · macOS 13+ · Apple Silicon · MIT**
+**Version 2.1.0 · macOS 13+ · Apple Silicon · MIT**
 
 查看 Codex 本机日志中的对话、分项目和全部项目用量，显示 tokens、美元及人民币等价估算。
 
 ## DOWNLOAD & INSTALL / 下载与安装
 
-- [Download 2.0.2 — Apple Silicon DMG](https://github.com/NobitaChow/jiayu-token-float/releases/download/v2.0.2/JIAYU-TOKEN-FLOAT-2.0.2-APPLE-SILICON.dmg)
-- [Release notes & SHA-256 checksums](https://github.com/NobitaChow/jiayu-token-float/releases/tag/v2.0.2)
+- [Download 2.1.0 — Apple Silicon DMG](https://github.com/NobitaChow/jiayu-token-float/releases/download/v2.1.0/JIAYU-TOKEN-FLOAT-2.1.0-APPLE-SILICON.dmg)
+- [Release notes & SHA-256 checksums](https://github.com/NobitaChow/jiayu-token-float/releases/tag/v2.1.0)
 - [Changelog](CHANGELOG.md)
 
 1. 退出正在运行的旧版。
-2. 打开 DMG，将 **JIAYU Token Float 2.0.2.app** 拖入「应用程序」。
+2. 打开 DMG，将 **JIAYU Token Float 2.1.0.app** 拖入「应用程序」。
 3. 从「应用程序」打开新版，避免同时运行多个版本。
 
 2.0 提供带拖入引导的 DMG、中文手册、源码、LOGO 和 SHA-256 校验值。本包采用本地 ad-hoc 签名，未获得 Apple 开发者公证。
 
-## 2.0.2 / 修复
+## 2.1.0 / 修复
 
 金额与速度的变化提示改为占位排列：宽度足够时排在数值后方，较窄时换到下一行，不再覆盖指标标题。
 
@@ -77,3 +77,14 @@
 ---
 
 免责声明：这个工具是通过 **AI 与人工协作**完成的。它原本只是我根据自己的需求制作的一个个人小工具。我保留这个代码仓库主要是为了方便以后备份和使用，同时也分享给社区，希望它能对其他同样在寻找简单实用工具的人有所帮助。
+
+## 跟随 Codex 开启和退出（2.1.0）
+
+将应用放入“应用程序”后，在设置开启“跟随 Codex 客户端开启／退出”。跟随的是应用标识 `com.openai.codex`，即部分机器上名为 ChatGPT 的 Codex 客户端。
+
+- 客户端启动时打开悬浮窗，完全退出时关闭。仅关闭客户端窗口不会退出悬浮窗。
+- 手动退出悬浮窗后，本次客户端运行期间不再自动重开；下次启动客户端恢复。
+- 开关关闭时移除用户级后台跟随任务。卸载应用前请先关闭该开关。
+- 后台助手只监听应用生命周期，不需要辅助功能、屏幕录制或自动化权限。用户登录后由 LaunchAgent 启动，等待客户端。
+
+后台任务：`~/Library/LaunchAgents/studio.jiayu.tokenfloat.follow-codex.plist`。它指向当前安装的版本；升级后请从新版本重新开启此开关。
